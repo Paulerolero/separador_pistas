@@ -38,4 +38,5 @@ backend/temp/
 .DS_Store
 Thumbs.db
 .vscode/
-.idea/
+# Cloned space
+sep-pistas/
