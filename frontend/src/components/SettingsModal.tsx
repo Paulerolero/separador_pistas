@@ -95,7 +95,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Servidor de IA (Backend Demucs)</span>
           </div>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            Para usar la app desde el móvil, tablet u otro PC, ingresa la IP local o dominio de tu servidor (ej. <code>http://192.168.1.50:8000</code>).
+            Ingresa la URL de tu backend de IA local (ej. <code>http://127.0.0.1:8000</code>) o en la nube (ej. <code>https://tu-space.hf.space</code>).
           </p>
 
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -103,7 +103,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               type="text"
               value={currentUrl}
               onChange={(e) => setCurrentUrl(e.target.value)}
-              placeholder="http://127.0.0.1:8000"
+              placeholder="http://127.0.0.1:8000 o https://tu-space.hf.space"
               className="settings-input"
               style={{ flex: 1 }}
             />

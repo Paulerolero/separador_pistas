@@ -86,7 +86,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   };
 
   const connectWebSocket = (trackId: string) => {
-    const wsUrl = apiUrl.replace('http', 'ws');
+    const wsUrl = apiUrl.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://');
     let ws: WebSocket | null = null;
     let pollInterval: number | null = null;
 

@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "separador-de-pistas-mp3"
+  },
+  "targets": {
+    "separador-de-pistas-mp3": {
+      "hosting": {
+        "sep-pistas": [
+          "sep-pistas"
+        ]
+      }
+    }
   }
 }
