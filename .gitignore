@@ -1,0 +1,41 @@
+# Python / Virtualenv
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+
+# Build & Dist artifacts
+build/
+dist/
+debug_build/
+debug_dist/
+diag_build/
+diag_dist/
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+*.env
+*.env.local
+
+# Temp, audio uploads & models
+temp_stems/
+uploads/
+backend/temp/
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.zip
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
