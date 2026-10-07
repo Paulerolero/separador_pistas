@@ -28,6 +28,7 @@ export interface SessionData {
   beat_grid: number[];
   chords: ChordSegment[];
   guitar_transcription: NoteEvent[];
+  bass_transcription?: NoteEvent[];
 }
 
 export interface StemChannelState {

@@ -226,10 +226,24 @@ export class MultiTrackEngine {
     this.recalculateGains();
   }
 
+  public setMute(stemId: string, muted: boolean): void {
+    const ch = this.channels.get(stemId);
+    if (!ch) return;
+    ch.isMuted = muted;
+    this.recalculateGains();
+  }
+
   public toggleSolo(stemId: string): void {
     const ch = this.channels.get(stemId);
     if (!ch) return;
     ch.isSolo = !ch.isSolo;
+    this.recalculateGains();
+  }
+
+  public setSolo(stemId: string, solo: boolean): void {
+    const ch = this.channels.get(stemId);
+    if (!ch) return;
+    ch.isSolo = solo;
     this.recalculateGains();
   }
 

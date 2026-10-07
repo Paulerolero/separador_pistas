@@ -12,6 +12,7 @@ from app.core.config import UPLOADS_DIR, STEMS_DIR, SESSIONS_DIR, SUPPORTED_EXTE
 from app.services.mir_analyzer import MirAnalyzer
 from app.services.transcription import StringInstrumentTranscriber
 from app.services.separation import StemSeparatorService
+from app.services.youtube_downloader import YouTubeDownloaderService
 from app.api.websocket import ws_manager
 
 logger = logging.getLogger("endpoints")
@@ -25,6 +26,9 @@ class UploadResponse(BaseModel):
     filename: str
     status: str
     message: str
+
+class YouTubeExtractRequest(BaseModel):
+    url: str
 
 def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_loop: asyncio.AbstractEventLoop):
     """Ejecuta la separación y MIR en un hilo de trabajo con notificación síncrona/hilo seguro a asyncio."""
@@ -50,7 +54,7 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
         update_progress(10, "Iniciando pipeline y cargando audio...", "INITIALIZING")
 
         # 1. Separación de Stems
-        update_progress(25, "Separando pistas en 6 stems con Demucs v4...", "SEPARATION")
+        update_progress(25, "Separando pistas en stems aislados...", "SEPARATION")
         stems_dict = StemSeparatorService.separate(
             abs_audio_path,
             track_stems_dir,
@@ -61,11 +65,16 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
         update_progress(75, "Detectando tempo, tonalidad y acordes...", "HARMONIC_ANALYSIS")
         mir_data = MirAnalyzer.analyze(abs_audio_path)
 
-        # 3. Transcripción de Guitarra a Tablatura
-        update_progress(88, "Transcribiendo digitación de cuerdas...", "TRANSCRIPTION")
+        # 3. Transcripción de Guitarra y Bajo a Tablatura
+        update_progress(88, "Transcribiendo digitación de cuerdas (guitarra & bajo)...", "TRANSCRIPTION")
         guitar_stem = track_stems_dir / "guitar.wav"
         transcription_target = str(guitar_stem.resolve()) if guitar_stem.exists() else abs_audio_path
-        notes = StringInstrumentTranscriber.transcribe(transcription_target, instrument="guitar")
+        guitar_notes = StringInstrumentTranscriber.transcribe(transcription_target, instrument="guitar")
+
+        bass_stem = track_stems_dir / "bass.wav"
+        bass_notes = []
+        if bass_stem.exists():
+            bass_notes = StringInstrumentTranscriber.transcribe(str(bass_stem.resolve()), instrument="bass")
 
         # 4. Construir URLs públicas relativas para el frontend
         stems_urls = {
@@ -73,10 +82,15 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
             for stem_name, filename_wav in stems_dict.items()
         }
 
+        # Extraer nombre amigable sin extensión
+        display_title = Path(filename).stem if not filename.endswith(('.mp3', '.wav', '.flac', '.ogg')) else Path(filename).stem
+        if display_title.startswith("YouTube_"):
+            display_title = filename
+
         session_data = {
             "track_id": track_id,
             "metadata": {
-                "title": Path(filename).stem,
+                "title": display_title,
                 "duration_seconds": mir_data.duration,
                 "bpm": mir_data.bpm,
                 "key": mir_data.key,
@@ -85,7 +99,8 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
             "stems": stems_urls,
             "beat_grid": mir_data.beat_grid,
             "chords": [c.model_dump() for c in mir_data.chords],
-            "guitar_transcription": [n.model_dump() for n in notes]
+            "guitar_transcription": [n.model_dump() for n in guitar_notes],
+            "bass_transcription": [n.model_dump() for n in bass_notes]
         }
 
         session_file = SESSIONS_DIR / f"{track_id}.json"
@@ -95,10 +110,10 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
         if track_id in JOBS:
             JOBS[track_id]["status"] = "COMPLETED"
             JOBS[track_id]["progress"] = 100
-            JOBS[track_id]["message"] = "¡Pistas y análisis listos!"
+            JOBS[track_id]["message"] = "¡Pistas y tablatura listas!"
             JOBS[track_id]["data"] = session_data
 
-        update_progress(100, "¡Pistas y análisis listos!", "COMPLETED", extra=session_data)
+        update_progress(100, "¡Pistas y tablatura listas!", "COMPLETED", extra=session_data)
 
     except Exception as e:
         logger.exception(f"Error procesando track {track_id}: {e}")
@@ -107,10 +122,56 @@ def _run_pipeline_blocking(track_id: str, file_path: Path, filename: str, main_l
             JOBS[track_id]["message"] = str(e)
         update_progress(0, f"Error: {str(e)}", "ERROR")
 
+def _run_youtube_pipeline_blocking(track_id: str, url: str, main_loop: asyncio.AbstractEventLoop):
+    """Descarga de YouTube y posterior ejecución del pipeline de stems y MIR."""
+    def update_progress(pct: int, msg: str, stage: str = "PROCESSING", extra: dict = None):
+        if track_id in JOBS:
+            JOBS[track_id]["progress"] = pct
+            JOBS[track_id]["message"] = msg
+            JOBS[track_id]["stage"] = stage
+        logger.info(f"[{track_id[:8]}] {pct}% | {stage} | {msg}")
+        try:
+            asyncio.run_coroutine_threadsafe(
+                ws_manager.broadcast_progress(track_id, pct, stage, msg, extra),
+                main_loop
+            )
+        except Exception as err:
+            logger.warning(f"Error despachando evento WS a main_loop: {err}")
+
+    try:
+        update_progress(5, "Conectando con YouTube y extrayendo metadatos...", "YOUTUBE_FETCH")
+        yt_data = YouTubeDownloaderService.download_audio(
+            url,
+            UPLOADS_DIR,
+            track_id,
+            progress_callback=lambda p, m: update_progress(p, m, "YOUTUBE_DOWNLOAD")
+        )
+        audio_file = yt_data["file_path"]
+        title = yt_data["title"]
+
+        if track_id in JOBS:
+            JOBS[track_id]["filename"] = title
+            JOBS[track_id]["path"] = str(audio_file)
+
+        # Procesar con el pipeline habitual
+        _run_pipeline_blocking(track_id, audio_file, title, main_loop)
+
+    except Exception as e:
+        logger.exception(f"Error extrayendo audio de YouTube para track {track_id}: {e}")
+        if track_id in JOBS:
+            JOBS[track_id]["status"] = "ERROR"
+            JOBS[track_id]["message"] = str(e)
+        update_progress(0, f"Error en YouTube: {str(e)}", "ERROR")
+
 async def run_track_pipeline(track_id: str, file_path: Path, filename: str):
-    """Wrapper asíncrono para ejecutar el pipeline sin bloquear el bucle de eventos."""
+    """Wrapper asíncrono para ejecutar el pipeline de archivo subido."""
     loop = asyncio.get_running_loop()
     await asyncio.to_thread(_run_pipeline_blocking, track_id, file_path, filename, loop)
+
+async def run_youtube_pipeline(track_id: str, url: str):
+    """Wrapper asíncrono para ejecutar el pipeline de YouTube."""
+    loop = asyncio.get_running_loop()
+    await asyncio.to_thread(_run_youtube_pipeline_blocking, track_id, url, loop)
 
 @router.post("/tracks/upload", response_model=UploadResponse)
 async def upload_audio_track(
@@ -148,6 +209,38 @@ async def upload_audio_track(
         filename=file.filename,
         status="QUEUED",
         message="Archivo recibido. Tarea de separación y análisis encolada."
+    )
+
+@router.post("/tracks/youtube", response_model=UploadResponse)
+async def process_youtube_track(
+    request: YouTubeExtractRequest,
+    background_tasks: BackgroundTasks
+):
+    url = request.url.strip()
+    if not YouTubeDownloaderService.is_valid_youtube_url(url):
+        raise HTTPException(
+            status_code=400,
+            detail="URL de YouTube inválida. Proporciona un enlace válido (ej. https://www.youtube.com/watch?v=... o https://youtu.be/...)"
+        )
+
+    track_id = str(uuid.uuid4())
+    JOBS[track_id] = {
+        "status": "QUEUED",
+        "progress": 5,
+        "stage": "YOUTUBE_INIT",
+        "message": "Enlace de YouTube recibido. Iniciando descarga y análisis...",
+        "filename": "YouTube Audio",
+        "path": None,
+        "data": None
+    }
+
+    background_tasks.add_task(run_youtube_pipeline, track_id, url)
+
+    return UploadResponse(
+        track_id=track_id,
+        filename="YouTube Audio",
+        status="QUEUED",
+        message="Enlace recibido. Descarga, separación de pistas y análisis encolados."
     )
 
 @router.get("/tracks/{track_id}/status")

@@ -604,5 +604,263 @@
       "string": 1,
       "fret": 3
     }
+  ],
+  "bass_transcription": [
+    {
+      "start": 0.0,
+      "end": 0.436,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 0.545,
+      "end": 0.982,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 1.091,
+      "end": 1.527,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 1.636,
+      "end": 2.073,
+      "pitch_midi": 52,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "start": 2.182,
+      "end": 2.618,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 2.727,
+      "end": 3.164,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 3.273,
+      "end": 3.709,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 3.818,
+      "end": 4.255,
+      "pitch_midi": 48,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 4.364,
+      "end": 4.8,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 4.909,
+      "end": 5.345,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 5.455,
+      "end": 5.891,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 6.0,
+      "end": 6.436,
+      "pitch_midi": 55,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "start": 6.545,
+      "end": 6.982,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 7.091,
+      "end": 7.527,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 7.636,
+      "end": 8.073,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 8.182,
+      "end": 8.618,
+      "pitch_midi": 50,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 5
+    },
+    {
+      "start": 8.727,
+      "end": 9.164,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 9.273,
+      "end": 9.709,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 9.818,
+      "end": 10.255,
+      "pitch_midi": 45,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 0
+    },
+    {
+      "start": 10.364,
+      "end": 10.8,
+      "pitch_midi": 52,
+      "note_name": "A2",
+      "string": 3,
+      "fret": 2
+    },
+    {
+      "start": 10.909,
+      "end": 11.345,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 11.455,
+      "end": 11.891,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 12.0,
+      "end": 12.436,
+      "pitch_midi": 41,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 1
+    },
+    {
+      "start": 12.545,
+      "end": 12.982,
+      "pitch_midi": 48,
+      "note_name": "F1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 13.091,
+      "end": 13.527,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 13.636,
+      "end": 14.073,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 14.182,
+      "end": 14.618,
+      "pitch_midi": 48,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 3
+    },
+    {
+      "start": 14.727,
+      "end": 15.164,
+      "pitch_midi": 55,
+      "note_name": "C2",
+      "string": 3,
+      "fret": 5
+    },
+    {
+      "start": 15.273,
+      "end": 15.709,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 15.818,
+      "end": 16.255,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 16.364,
+      "end": 16.8,
+      "pitch_midi": 43,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 3
+    },
+    {
+      "start": 16.909,
+      "end": 17.345,
+      "pitch_midi": 50,
+      "note_name": "G1",
+      "string": 4,
+      "fret": 5
+    }
   ]
 }

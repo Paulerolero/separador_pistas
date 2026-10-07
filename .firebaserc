@@ -1,14 +1,15 @@
 {
   "projects": {
-    "default": "separador-de-pistas-mp3"
+    "default": "cakekulator-bd"
   },
   "targets": {
-    "separador-de-pistas-mp3": {
+    "cakekulator-bd": {
       "hosting": {
         "sep-pistas": [
           "sep-pistas"
         ]
       }
     }
-  }
+  },
+  "etags": {}
 }

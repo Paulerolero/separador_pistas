@@ -68,6 +68,25 @@ class StringInstrumentTranscriber:
         return {"string": best_string, "fret": best_fret}
 
     @classmethod
+    def map_to_bass_tab(cls, midi_num: int, previous_fret: int = 3) -> Optional[Dict[str, int]]:
+        """
+        Finds the most ergonomic (string, fret) combination on a 4-string bass.
+        """
+        candidates = []
+        for string_idx, open_midi in enumerate(cls.BASS_OPEN_STRINGS, start=1):
+            fret = midi_num - open_midi
+            if 0 <= fret <= 24:
+                cost = abs(fret - previous_fret) + (0 if 0 <= fret <= 12 else 4)
+                candidates.append((cost, string_idx, fret))
+
+        if not candidates:
+            return None
+
+        candidates.sort(key=lambda x: x[0])
+        _, best_string, best_fret = candidates[0]
+        return {"string": best_string, "fret": best_fret}
+
+    @classmethod
     def transcribe(cls, audio_path: str, instrument: str = "guitar") -> List[NoteEvent]:
         """
         Runs pitch tracking (pYIN) on the audio file and produces NoteEvents with Tab coordinates.
@@ -97,7 +116,8 @@ class StringInstrumentTranscriber:
 
         current_midi: Optional[int] = None
         start_time: float = 0.0
-        last_fret: int = 5
+        last_fret: int = 5 if instrument == "guitar" else 3
+        map_fn = cls.map_to_guitar_tab if instrument == "guitar" else cls.map_to_bass_tab
 
         for i, (pitch, is_voiced) in enumerate(zip(f0, voiced_flag)):
             if is_voiced and not np.isnan(pitch) and pitch > 0:
@@ -110,7 +130,7 @@ class StringInstrumentTranscriber:
                     # Finalizar nota anterior si duró más de 50ms
                     duration = float(times[i]) - start_time
                     if duration >= 0.05 and current_midi is not None:
-                        tab = cls.map_to_guitar_tab(current_midi, previous_fret=last_fret)
+                        tab = map_fn(current_midi, previous_fret=last_fret)
                         if tab:
                             last_fret = tab["fret"]
                             note_events.append(NoteEvent(
@@ -127,7 +147,7 @@ class StringInstrumentTranscriber:
                 if current_midi is not None:
                     duration = float(times[i]) - start_time
                     if duration >= 0.05:
-                        tab = cls.map_to_guitar_tab(current_midi, previous_fret=last_fret)
+                        tab = map_fn(current_midi, previous_fret=last_fret)
                         if tab:
                             last_fret = tab["fret"]
                             note_events.append(NoteEvent(

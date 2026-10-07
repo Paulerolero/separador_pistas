@@ -201,6 +201,29 @@ def create_demo_session_if_needed():
                 "fret": tab_info["fret"]
             })
 
+    bass_notes = []
+    bass_tab_map = {
+        'A': {"pitch": 45, "note": "A2", "string": 3, "fret": 0},
+        'F': {"pitch": 41, "note": "F1", "string": 4, "fret": 1},
+        'C': {"pitch": 48, "note": "C2", "string": 3, "fret": 3},
+        'G': {"pitch": 43, "note": "G1", "string": 4, "fret": 3},
+    }
+
+    for bar in range(bars):
+        chord_root_name = chord_roots[bar % 4][0]
+        tab_b = bass_tab_map.get(chord_root_name, {"pitch": 45, "note": "A2", "string": 3, "fret": 0})
+        for b in range(4):
+            b_time = (bar * 4 + b) * beat_duration
+            fret_val = tab_b["fret"] if b < 3 else tab_b["fret"] + 2
+            bass_notes.append({
+                "start": round(b_time, 3),
+                "end": round(b_time + beat_duration * 0.8, 3),
+                "pitch_midi": tab_b["pitch"] if b < 3 else tab_b["pitch"] + 7,
+                "note_name": tab_b["note"],
+                "string": tab_b["string"],
+                "fret": fret_val
+            })
+
     session_data = {
         "track_id": demo_id,
         "metadata": {
@@ -213,7 +236,8 @@ def create_demo_session_if_needed():
         "stems": stems_urls,
         "beat_grid": beat_grid,
         "chords": chords,
-        "guitar_transcription": guitar_notes
+        "guitar_transcription": guitar_notes,
+        "bass_transcription": bass_notes
     }
 
     with open(demo_session_file, "w", encoding="utf-8") as f:

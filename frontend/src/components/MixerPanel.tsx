@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { MultiTrackEngine } from '../audio/MultiTrackEngine';
-import { Drum, Mic, Guitar, Sliders, Volume2, Sparkles, Piano, BookmarkCheck } from 'lucide-react';
+import { Drum, Mic, Guitar, Sliders, Volume2, Sparkles, Piano, BookmarkCheck, RotateCcw } from 'lucide-react';
 import type { UserPreferences } from '../firebase/firestore';
 
 interface MixerPanelProps {
@@ -118,6 +118,57 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
     engine?.setMasterVolume(val);
   };
 
+  // Presets Rápidos de Mezcla
+  const applyPresetBackingTrack = () => {
+    if (!engine) return;
+    const isCurrentlyMuted = channelStates['guitar']?.isMuted;
+    const next = !isCurrentlyMuted;
+    engine.setMute('guitar', next);
+    setChannelStates((prev) => ({
+      ...prev,
+      guitar: { ...prev.guitar, isMuted: next },
+    }));
+  };
+
+  const applyPresetKaraoke = () => {
+    if (!engine) return;
+    const isCurrentlyMuted = channelStates['vocals']?.isMuted;
+    const next = !isCurrentlyMuted;
+    engine.setMute('vocals', next);
+    setChannelStates((prev) => ({
+      ...prev,
+      vocals: { ...prev.vocals, isMuted: next },
+    }));
+  };
+
+  const applyPresetRhythmSection = () => {
+    if (!engine) return;
+    stemKeys.forEach((key) => {
+      const isRhythm = key === 'drums' || key === 'bass';
+      engine.setMute(key, !isRhythm);
+      setChannelStates((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], isMuted: !isRhythm },
+      }));
+    });
+  };
+
+  const resetAllMix = () => {
+    if (!engine) return;
+    stemKeys.forEach((key) => {
+      engine.setVolume(key, 0.85);
+      engine.setPan(key, 0.0);
+      engine.setMute(key, false);
+      engine.setSolo(key, false);
+      setChannelStates((prev) => ({
+        ...prev,
+        [key]: { volume: 0.85, pan: 0.0, isMuted: false, isSolo: false },
+      }));
+    });
+    setMasterVolume(0.9);
+    engine.setMasterVolume(0.9);
+  };
+
   const handleSaveMix = () => {
     if (!onSaveMixPreferences) return;
     const volumes: Record<string, number> = {};
@@ -149,11 +200,11 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
 
   return (
     <div className="compact-mixer-sidebar">
-      {/* Cabecera compacta con Master Volume */}
+      {/* 1. Cabecera con Master Volume y Guardado */}
       <div className="mixer-header-row">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <Sliders size={14} color="var(--accent-cyan)" />
-          <span className="mixer-title">MIXER ({stemKeys.length})</span>
+          <span className="mixer-title">CONSOLA ({stemKeys.length})</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -166,7 +217,9 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
               step="0.01"
               value={masterVolume}
               onChange={(e) => handleMasterVolChange(parseFloat(e.target.value))}
+              onDoubleClick={() => handleMasterVolChange(0.9)}
               className="master-slider"
+              title="Doble clic para resetear a 90%"
             />
             <span className="master-pct">{Math.round(masterVolume * 100)}%</span>
           </div>
@@ -184,7 +237,40 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
         </div>
       </div>
 
-      {/* Lista compacta de pistas de canal */}
+      {/* 2. Barra de Presets Rápidos de Mezcla (1 Clic) */}
+      <div className="mixer-presets-strip">
+        <button
+          onClick={applyPresetBackingTrack}
+          className={`mixer-preset-chip ${channelStates['guitar']?.isMuted ? 'active-preset' : ''}`}
+          title="Silenciar guitarra para tocar tú encima"
+        >
+          🎸 Backing Track
+        </button>
+        <button
+          onClick={applyPresetKaraoke}
+          className={`mixer-preset-chip ${channelStates['vocals']?.isMuted ? 'active-preset' : ''}`}
+          title="Silenciar voz para cantar encima"
+        >
+          🎤 Karaoke
+        </button>
+        <button
+          onClick={applyPresetRhythmSection}
+          className="mixer-preset-chip"
+          title="Solo Bajo + Batería"
+        >
+          🥁 Ritmo
+        </button>
+        <button
+          onClick={resetAllMix}
+          className="mixer-preset-chip reset"
+          title="Restablecer todos los faders y mutes a valores iniciales"
+        >
+          <RotateCcw size={10} />
+          <span>Reset</span>
+        </button>
+      </div>
+
+      {/* 3. Lista de pistas de canal táctiles */}
       <div className="mixer-channel-list">
         {stemKeys.map((stemId) => {
           const cfg = STEM_CONFIGS[stemId] || {
@@ -224,15 +310,15 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
                 <button
                   onClick={() => handleToggleSolo(stemId)}
                   className={`mini-btn solo-btn ${state.isSolo ? 'active' : ''}`}
-                  title={state.isSolo ? 'Quitar Solo' : 'Escuchar solo este canal'}
+                  title={state.isSolo ? 'Desactivar Solo' : 'Aislar (Solo)'}
                 >
                   S
                 </button>
               </div>
 
-              {/* Fader Horizontal con VU Meter integrado */}
-              <div className="fader-horizontal-wrap">
-                <div className="fader-track-container">
+              {/* Fader de Volumen Touch-Friendly */}
+              <div className="channel-fader-block">
+                <div className="fader-slider-wrap">
                   <input
                     type="range"
                     min="0"
@@ -240,39 +326,40 @@ export const MixerPanel: React.FC<MixerPanelProps> = ({
                     step="0.01"
                     value={state.volume}
                     onChange={(e) => handleVolumeChange(stemId, parseFloat(e.target.value))}
-                    className="horizontal-fader"
-                    style={{
-                      accentColor: cfg.color,
-                    }}
-                    title={`Volumen ${cfg.label}: ${Math.round(state.volume * 100)}%`}
+                    onDoubleClick={() => handleVolumeChange(stemId, 0.85)}
+                    className="channel-vol-slider"
+                    title={`Volumen ${cfg.label}: ${Math.round(state.volume * 100)}% (Doble clic para 85%)`}
                   />
-                  {/* Micro VU bar integrado */}
-                  <div className="mini-vu-track">
-                    <div
-                      className="mini-vu-fill"
-                      style={{
-                        width: `${Math.min(100, Math.round(level * 100))}%`,
-                        background: cfg.color,
-                      }}
-                    />
-                  </div>
+                  <span className="fader-val-label">{Math.round(state.volume * 100)}%</span>
                 </div>
-                <span className="vol-val-text">{Math.round(state.volume * 100)}%</span>
+
+                {/* Perilla de Paneo */}
+                <div className="pan-slider-wrap">
+                  <input
+                    type="range"
+                    min="-1"
+                    max="1"
+                    step="0.05"
+                    value={state.pan}
+                    onChange={(e) => handlePanChange(stemId, parseFloat(e.target.value))}
+                    onDoubleClick={() => handlePanChange(stemId, 0.0)}
+                    className="channel-pan-slider"
+                    title={`Paneo: ${state.pan === 0 ? 'Centro' : state.pan < 0 ? `L ${Math.round(Math.abs(state.pan) * 100)}%` : `R ${Math.round(state.pan * 100)}%`}`}
+                  />
+                  <span className="pan-val-label">
+                    {state.pan === 0 ? 'C' : state.pan < 0 ? `L${Math.round(Math.abs(state.pan) * 50)}` : `R${Math.round(state.pan * 50)}`}
+                  </span>
+                </div>
               </div>
 
-              {/* Paneo compacto */}
-              <div className="compact-pan-wrap" title={`Paneo: ${state.pan.toFixed(2)}`}>
-                <span className="pan-tag">
-                  {state.pan < -0.05 ? `L${Math.round(Math.abs(state.pan) * 100)}` : state.pan > 0.05 ? `R${Math.round(state.pan * 100)}` : 'C'}
-                </span>
-                <input
-                  type="range"
-                  min="-1"
-                  max="1"
-                  step="0.1"
-                  value={state.pan}
-                  onChange={(e) => handlePanChange(stemId, parseFloat(e.target.value))}
-                  className="mini-pan-slider"
+              {/* VU Meter reactivo con Peak Hold */}
+              <div className="channel-vu-meter" title={`Nivel en vivo: ${Math.round(level * 100)}%`}>
+                <div
+                  className={`vu-fill ${level > 0.88 ? 'clipping' : level > 0.65 ? 'warning' : ''}`}
+                  style={{
+                    height: `${Math.min(100, level * 100)}%`,
+                    backgroundColor: state.isMuted ? 'transparent' : undefined,
+                  }}
                 />
               </div>
             </div>

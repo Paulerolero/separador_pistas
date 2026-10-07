@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MultiTrackEngine } from './audio/MultiTrackEngine';
 import type { SessionData } from './audio/types';
 import { Header } from './components/Header';
-import { PracticeControls } from './components/PracticeControls';
 import { StudioWorkspace } from './components/StudioWorkspace';
 import { FretboardView } from './components/FretboardView';
+import { SongsterrTabPlayer } from './components/SongsterrTabPlayer';
 import { UploadModal } from './components/UploadModal';
 import { UserLibraryModal } from './components/UserLibraryModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -31,6 +31,7 @@ export const App: React.FC = () => {
     return localStorage.getItem(STORAGE_API_KEY) || DEFAULT_API_URL;
   });
 
+  const [activeView, setActiveView] = useState<'studio' | 'tablature' | 'split'>('tablature');
   const [session, setSession] = useState<SessionData | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -243,7 +244,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="single-screen-app">
-      {/* 1. Barra Superior Compacta con Perfil Google y Metadatos */}
+      {/* 1. Barra Superior Integrada con Master Transport, Scrubber y Modo Atril */}
       <Header
         onOpenUpload={() => setIsUploadOpen(true)}
         onLoadDemo={loadDemoSession}
@@ -255,10 +256,8 @@ export const App: React.FC = () => {
         keyName={session?.metadata.key}
         bpm={session?.metadata.bpm}
         currentChord={currentChord}
-      />
-
-      {/* 2. Barra de Transporte & Práctica Ultra-Compacta */}
-      <PracticeControls
+        activeView={activeView}
+        onSelectView={setActiveView}
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
@@ -268,6 +267,7 @@ export const App: React.FC = () => {
         loopB={loopB}
         onPlayPause={handlePlayPause}
         onStop={handleStop}
+        onSeek={handleSeek}
         onSetPlaybackRate={handleSetPlaybackRate}
         onToggleMetronome={handleToggleMetronome}
         onSetLoopA={handleSetLoopA}
@@ -275,27 +275,55 @@ export const App: React.FC = () => {
         onClearLoop={handleClearLoop}
       />
 
-      {/* 3. Área Central: Mixer Compacto Acoplado a un Costado de la Línea de Tiempo */}
-      <StudioWorkspace
-        engine={engine}
-        stems={session?.stems || {}}
-        isPlaying={isPlaying}
-        duration={duration}
-        currentTime={currentTime}
-        beatGrid={session?.beat_grid || []}
-        chords={session?.chords || []}
-        loopA={loopA}
-        loopB={loopB}
-        onSeek={handleSeek}
-        onSaveMixPreferences={handleSaveMixPreferences}
-        initialPreferences={userPreferences}
-      />
+      {/* 3. Área Central Dinámica: Mixer / Tablatura Songsterr / Vista Dividida */}
+      <div className={`workspace-content-router view-mode-${activeView}`}>
+        {(activeView === 'studio' || activeView === 'split') && (
+          <div className="workspace-pane-studio">
+            <StudioWorkspace
+              engine={engine}
+              stems={session?.stems || {}}
+              isPlaying={isPlaying}
+              duration={duration}
+              currentTime={currentTime}
+              beatGrid={session?.beat_grid || []}
+              chords={session?.chords || []}
+              loopA={loopA}
+              loopB={loopB}
+              onSeek={handleSeek}
+              onSaveMixPreferences={handleSaveMixPreferences}
+              initialPreferences={userPreferences}
+            />
+          </div>
+        )}
 
-      {/* 4. Mástil Interactivo para Cuerdas en la Base (Compacto) */}
+        {(activeView === 'tablature' || activeView === 'split') && (
+          <div className="workspace-pane-tablature">
+            <SongsterrTabPlayer
+              session={session}
+              currentTime={currentTime}
+              duration={duration}
+              isPlaying={isPlaying}
+              playbackRate={playbackRate}
+              loopA={loopA}
+              loopB={loopB}
+              engine={engine}
+              onPlayPause={handlePlayPause}
+              onSeek={handleSeek}
+              onSetPlaybackRate={handleSetPlaybackRate}
+              onSetLoopA={handleSetLoopA}
+              onSetLoopB={handleSetLoopB}
+              onClearLoop={handleClearLoop}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 4. Mástil Interactivo Plegable Tipo Drawer en la Base */}
       <FretboardView
         currentTime={currentTime}
         notes={session?.guitar_transcription || []}
         initialInstrument={userPreferences?.instrument || 'guitar'}
+        keyRootNote={session?.metadata.key}
         onInstrumentChange={(inst) => {
           const uid = user ? user.uid : 'guest';
           saveUserPreferences(uid, { ...userPreferences, instrument: inst });
